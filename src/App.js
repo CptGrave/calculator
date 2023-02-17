@@ -1,14 +1,19 @@
 import './App.css';
-import React from 'react'
+import {useState} from 'react'
 
-const calcData = [
-  { id: "clear", value: "AC" },
+const AC = "AC";
+const EQUALS = "=";
+const DECIMAL = ".";
+const MINUS = "-";
+
+const CALC_DATA = [
+  { id: "clear", value: AC },
   { id: "divide", value: "/" },
-  { id: "multiply", value: "x" },
+  { id: "multiply", value: "*" },
   { id: "seven", value: 7 },
   { id: "eight", value: 8 },
   { id: "nine", value: 9 },
-  { id: "subtract", value: "-" },
+  { id: "subtract", value: MINUS },
   { id: "four", value: 4 },
   { id: "five", value: 5 },
   { id: "six", value: 6 },
@@ -16,19 +21,19 @@ const calcData = [
   { id: "one", value: 1 },
   { id: "two", value: 2 },
   { id: "three", value: 3 },
-  { id: "equals", value: "=" },
+  { id: "equals", value: EQUALS },
   { id: "zero", value: 0 },
-  { id: "decimal", value: "." },
+  { id: "decimal", value: DECIMAL },
 ];
 
-const operators = ["AC", "/", "x", "+", "-", "="];
+const OPERATORS = ["/", "*", "+", MINUS];
 
-const numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+const NUMBERS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-const Display = ({ input, output }) => (
+const Display = ({ lastInput, display }) => (
   <div className="output">
-    <span className="result">{output}</span>
-    <span id="display" className="input">{input}</span>
+    <span id="display" className="result">{display}</span>
+    <span className="input">{lastInput}</span>
   </div>
 );
 
@@ -40,141 +45,66 @@ const Key = ({ keyData: { id, value }, handleInput }) => (
 
 const Keyboard = ({ handleInput }) => (
   <div className="keys">
-    {calcData.map((key) => (
+    {CALC_DATA.map((key) => (
       <Key key={key.id} keyData={key} handleInput={handleInput} />
     ))}
   </div>
 );
 
 const App = () => {
-const [input, setInput] = React.useState("0");
-  const [output, setOutput] = React.useState("");
-  const [calculatorData, setCalculatorData] = React.useState("");
+  const [lastInput, setLastInput] = useState("");
+  const [display, setDisplay] = useState("0");
 
-  const handleSubmit = () => {
-    console.log({ calculatorData });
+  const handleInput = input => {
+    if (input === AC) {
+      setDisplay("0");
+      setLastInput();
+      return;
+    }
 
-    const total = eval(calculatorData);
-    setInput(total);
-    setOutput(`${total} = ${total}`);
-    setCalculatorData(`${total}`);
-  };
-
-  const handleClear = () => {
-    setInput("0");
-    setCalculatorData("");
-  };
-
-  const handleNumbers = (value) => {
-    if (!calculatorData.length) {
-      setInput(`${value}`);
-      setCalculatorData(`${value}`);
-    } else {
-      if (value === 0 && (calculatorData === "0" || input === "0")) {
-        setCalculatorData(`${calculatorData}`);
+    if (NUMBERS.includes(input)) {
+      if (display === "0" || lastInput === EQUALS) {
+        setDisplay(`${input}`);
       } else {
-        const lastChat = calculatorData.charAt(calculatorData.length - 1);
-        const isLastChatOperator =
-          lastChat === "*" || operators.includes(lastChat);
+        setDisplay(`${display}${input}`);
+      }
+      setLastInput(input); 
+      return;
+    }
 
-        setInput(isLastChatOperator ? `${value}` : `${input}${value}`);
-        setCalculatorData(`${calculatorData}${value}`);
+    if (input === EQUALS) {
+      try {
+        setDisplay(eval(display));
+        setLastInput(input);
+      } catch (error) {
+        console.error("eval failed for display value: ", display)
       }
     }
-  };
 
-  const dotOperator = () => {
-    const lastChat = calculatorData.charAt(calculatorData.length - 1);
-    if (!calculatorData.length) {
-      setInput("0.");
-      setCalculatorData("0.");
-    } else {
-      if (lastChat === "*" || operators.includes(lastChat)) {
-        setInput("0.");
-        setCalculatorData(`${calculatorData} 0.`);
+    if (OPERATORS.includes(input)) {
+      if (!OPERATORS.includes(lastInput) || input === MINUS) {
+        setDisplay(`${display}${input}`);
       } else {
-        setInput(
-          lastChat === "." || input.includes(".") ? `${input}` : `${input}.`
-        );
-        const formattedValue =
-          lastChat === "." || input.includes(".")
-            ? `${calculatorData}`
-            : `${calculatorData}.`;
-        setCalculatorData(formattedValue);
+        const displayWithoutTrailingOperators = display.replace(/[\+\-\*\/]+$/, "");
+        setDisplay(`${displayWithoutTrailingOperators}${input}`);
+      }
+      setLastInput(input); 
+    }
+
+    if (input === DECIMAL) {
+      const currentNumber = display.split(/[\+\-\*\/]/).pop();
+
+      if (!currentNumber.includes(DECIMAL)) {
+        setDisplay(`${display}${input}`);
+        setLastInput(input);
       }
     }
-  };
-
-
-  const handleOperators = (value) => {
-    if (calculatorData.length) {
-      setInput(`${value}`);
-      const beforeLastChat = calculatorData.charAt(calculatorData.length - 2);
-
-      const beforeLastChatIsOperator =
-        operators.includes(beforeLastChat) || beforeLastChat === "*";
-
-      const lastChat = calculatorData.charAt(calculatorData.length - 1);
-      
-      const lastChatIsOperator = operators.includes(lastChat) || lastChat === "*";
-      
-      const validOp = value === "x" ? "*" : value;
-      if (
-        (lastChatIsOperator && value !== "-") ||
-        beforeLastChatIsOperator && lastChatIsOperator
-      ) {
-        if (beforeLastChatIsOperator) {
-          const updatedValue = `${calculatorData.substring(
-            0,
-            calculatorData.length - 2
-          )}${value}`;
-          setCalculatorData(updatedValue);
-        } else {
-          setCalculatorData(`${calculatorData.substring(0, calculatorData.length - 1)}${validOp}`);
-        }
-      } else {
-        setCalculatorData(`${calculatorData}${validOp}`);
-      }
-    }
-  };
-
-  const handleInput = (value) => {
-    const number = numbers.find((num) => num === value);
-    const operator = operators.find((op) => op === value);
-
-    switch (value) {
-      case "=":
-        handleSubmit();
-        break;
-      case "AC":
-        handleClear();
-        break;
-      case number:
-        handleNumbers(value);
-        break;
-      case ".":
-        dotOperator(value);
-        break;
-      case operator:
-        handleOperators(value);
-        break;
-      default:
-        break;
-    }
-  };
-
-  const handleOutput = () => {
-    setOutput(calculatorData);
-  };
-
-  React.useEffect(() => {
-    handleOutput();
-  }, [calculatorData]);
+  }
 
   return (
     <div className="container">
       <div className="calculator">
-        <Display input={input} output={output} />
+        <Display lastInput={lastInput} display={display} />
         <Keyboard handleInput={handleInput} />
       </div>
     </div>
@@ -182,3 +112,5 @@ const [input, setInput] = React.useState("0");
 }
 
 export default App;
+
+
